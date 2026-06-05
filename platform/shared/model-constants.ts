@@ -93,6 +93,19 @@ const PROVIDERS_WITH_OPTIONAL_API_KEY = new Set<SupportedProvider>([
   "vllm",
 ]);
 
+/**
+ * Providers that have no usable default endpoint, so an env-seeded key without an
+ * explicit base URL is unusable: vLLM has no default at all (the OpenAI-compatible
+ * SDK would silently fall back to api.openai.com), and Azure has no resource URL.
+ * Bedrock is intentionally excluded — at runtime it infers a region (us-east-1
+ * fallback) so chat works key-only/IAM even without a base URL (only its model-list
+ * sync needs one). Gemini is excluded — its SDK supplies its own default.
+ */
+export const PROVIDERS_REQUIRING_BASE_URL = new Set<SupportedProvider>([
+  "azure",
+  "vllm",
+]);
+
 export function isProviderApiKeyOptional(params: {
   provider: SupportedProvider;
   azureEntraIdEnabled?: boolean;

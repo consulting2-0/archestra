@@ -1474,9 +1474,95 @@ describe("run_tool", () => {
         'Invalid tool_args for "final_answer__submit_result"',
       );
       expect(text).toContain('missing required parameter "result"');
+      // the empty call is echoed back and a filled skeleton shows the fix
+      expect(text).toContain(
+        'You sent: {"tool_name":"final_answer__submit_result","tool_args":{}}',
+      );
+      expect(text).toContain('"result": <object>');
       // the full schema is echoed for self-correction
       expect(text).toContain('"required"');
       expect(text).toContain('"additionalProperties"');
+      expect(mcpClient.executeToolCallForOwner).not.toHaveBeenCalled();
+    });
+
+    test("unpacks a declared nested object shape into the skeleton (no dispatch)", async ({
+      makeAgentTool,
+      makeInternalMcpCatalog,
+      makeTool,
+    }) => {
+      const catalog = await makeInternalMcpCatalog();
+      const tool = await makeTool({
+        name: "search__query",
+        catalogId: catalog.id,
+        parameters: {
+          type: "object",
+          properties: {
+            filter: {
+              type: "object",
+              properties: {
+                field: { type: "string" },
+                limit: { type: "number" },
+              },
+              required: ["field", "limit"],
+            },
+          },
+          required: ["filter"],
+        },
+      });
+      await makeAgentTool(testAgent.id, tool.id);
+
+      const result = await executeArchestraTool(
+        TOOL_RUN_TOOL_FULL_NAME,
+        { tool_name: "search__query", tool_args: {} },
+        mockContext,
+      );
+
+      expect(result.isError).toBe(true);
+      const text = (result.content[0] as any).text;
+      expect(text).toContain(
+        '"filter": {"field": <string>, "limit": <number>}',
+      );
+      expect(mcpClient.executeToolCallForOwner).not.toHaveBeenCalled();
+    });
+
+    test("unpacks an array of objects with an enum member into the skeleton (no dispatch)", async ({
+      makeAgentTool,
+      makeInternalMcpCatalog,
+      makeTool,
+    }) => {
+      const catalog = await makeInternalMcpCatalog();
+      const tool = await makeTool({
+        name: "tickets__bulk_update",
+        catalogId: catalog.id,
+        parameters: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  status: { type: "string", enum: ["open", "closed"] },
+                },
+                required: ["id", "status"],
+              },
+            },
+          },
+          required: ["items"],
+        },
+      });
+      await makeAgentTool(testAgent.id, tool.id);
+
+      const result = await executeArchestraTool(
+        TOOL_RUN_TOOL_FULL_NAME,
+        { tool_name: "tickets__bulk_update", tool_args: {} },
+        mockContext,
+      );
+
+      expect(result.isError).toBe(true);
+      const text = (result.content[0] as any).text;
+      expect(text).toContain('"items": [{"id": <string>, "status": "open"}]');
       expect(mcpClient.executeToolCallForOwner).not.toHaveBeenCalled();
     });
 
@@ -1508,9 +1594,13 @@ describe("run_tool", () => {
       );
 
       expect(result.isError).toBe(true);
-      expect((result.content[0] as any).text).toContain(
-        'unexpected parameter "bogus"',
+      const text = (result.content[0] as any).text;
+      expect(text).toContain('unexpected parameter "bogus"');
+      // echo + skeleton hold for the unknown-key path too, not just missing-key
+      expect(text).toContain(
+        'You sent: {"tool_name":"github__search_repositories","tool_args":{"query":"x","bogus":1}}',
       );
+      expect(text).toContain('"query": <string>');
       expect(mcpClient.executeToolCallForOwner).not.toHaveBeenCalled();
     });
 

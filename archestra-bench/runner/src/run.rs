@@ -195,6 +195,15 @@ pub async fn run(
     )
     .await?;
 
+    // Stream the managed Dagger engine's container logs into the run dir so a future engine crash is
+    // root-causeable (managed tier only; non-fatal). The host was resolved by `preflight` above.
+    let dagger_compose = repo_root()
+        .join("archestra-bench")
+        .join("dev")
+        .join("docker-compose.bench-dagger.yml");
+    let dagger_logs =
+        crate::lifecycle::capture_managed_dagger_logs(&dagger_compose, &root_run_dir).await;
+
     let ctx = RunCtx {
         root_run_dir,
         run_id,
@@ -206,6 +215,12 @@ pub async fn run(
     };
 
     let results = execute_plan(plan, ctx.clone(), workers).await;
+
+    // All sandbox work is done; stop the engine-log follower (no-op if capture was skipped). The
+    // remaining report/aggregate steps touch no sandbox, so an early `?` return below cannot leak it.
+    if let Some(guard) = dagger_logs {
+        guard.stop().await;
+    }
 
     let results = crate::results::build_report(results).map_err(RunError::Config)?;
     let report = render_markdown(&results);

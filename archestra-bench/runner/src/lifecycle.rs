@@ -10,26 +10,43 @@ use tokio::fs;
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 use tokio::time::{Duration, sleep};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::client::{ClientError, EvalClient};
 
-/// A self-contained teardown for one backend instance: the process-group child and the database
-/// handle, decoupled from the `Instance` so cleanup can run even after the orchestration future is
-/// dropped on signal cancellation. Cloning shares the same `Arc` state as the live `Instance`, and
-/// running it twice is a no-op (the child is taken; the db_created flag is cleared).
+/// A self-contained teardown handle, decoupled from its owner so cleanup can run even after the
+/// orchestration future is dropped on signal cancellation. Cloning shares the same `Arc` state as the
+/// live owner, and running it twice is a no-op (the child is taken). Two kinds ride the same registry
+/// so `shutdown_all` kills them all on SIGINT/SIGTERM:
+/// - `Backend`: one backend instance — its process-group child plus the per-run database.
+/// - `DaggerLogs`: the process-wide managed-engine log follower (no database).
 #[derive(Clone)]
-struct Teardown {
-    proc: Arc<Mutex<Option<Child>>>,
-    db_created: Arc<Mutex<bool>>,
-    db_name: String,
-    maint_db_url: String,
+enum Teardown {
+    Backend {
+        proc: Arc<Mutex<Option<Child>>>,
+        db_created: Arc<Mutex<bool>>,
+        db_name: String,
+        maint_db_url: String,
+    },
+    DaggerLogs {
+        proc: Arc<Mutex<Option<Child>>>,
+    },
 }
 
 impl Teardown {
     async fn run(&self) {
-        kill_backend(&self.proc).await;
-        drop_database(&self.db_created, &self.db_name, &self.maint_db_url).await;
+        match self {
+            Teardown::Backend {
+                proc,
+                db_created,
+                db_name,
+                maint_db_url,
+            } => {
+                kill_backend(proc).await;
+                drop_database(db_created, db_name, maint_db_url).await;
+            }
+            Teardown::DaggerLogs { proc } => kill_child(proc, "managed Dagger engine log follower").await,
+        }
     }
 }
 
@@ -72,11 +89,18 @@ pub async fn shutdown_all() {
 }
 
 async fn kill_backend(proc: &Arc<Mutex<Option<Child>>>) {
+    kill_child(proc, "backend").await;
+}
+
+/// SIGTERM the child's process group, then SIGKILL if it doesn't exit in 15s. Takes the child so a
+/// second teardown is a no-op. Shared by the backend and the managed-engine log follower — both are
+/// spawned in their own process group (`process_group(0)`).
+async fn kill_child(proc: &Arc<Mutex<Option<Child>>>, what: &str) {
     let mut guard = proc.lock().await;
     if let Some(mut child) = guard.take()
         && let Some(pid) = child.id()
     {
-        info!("stopping backend pid {pid}");
+        info!("stopping {what} pid {pid}");
         let pgid = Pid::from_raw(pid as i32);
         let _ = signal::killpg(pgid, Signal::SIGTERM);
         match tokio::time::timeout(Duration::from_secs(15), child.wait()).await {
@@ -277,7 +301,7 @@ impl Instance {
 
         // Register teardown BEFORE the first side effect (database creation): an interruption during a
         // partial boot must still kill the process group and drop the database.
-        self.teardown_id = Some(register(Teardown {
+        self.teardown_id = Some(register(Teardown::Backend {
             proc: self.proc.clone(),
             db_created: self.db_created.clone(),
             db_name: self.db_name.clone(),
@@ -769,6 +793,83 @@ async fn ensure_bench_dagger(compose_file: &Path) -> Result<(), LifecycleError> 
         .copied()
 }
 
+/// The managed engine's container logs, streamed to `<root_run_dir>/dagger.engine.log` so an engine
+/// crash mid-run is root-causeable (OOM vs panic) and correlatable with the backend log's timestamps.
+const DAGGER_ENGINE_LOG_FILE: &str = "dagger.engine.log";
+
+/// A running managed-engine log follower. Stopped explicitly at run end via [`Self::stop`]; also
+/// registered in the teardown registry so SIGINT/SIGTERM reaps it. Stopping deregisters first, so the
+/// signal path and the normal path never double-kill.
+pub struct DaggerLogsGuard {
+    teardown_id: u64,
+    proc: Arc<Mutex<Option<Child>>>,
+}
+
+impl DaggerLogsGuard {
+    /// Kill the follower and drop it from the teardown registry. Idempotent — a later `shutdown_all`
+    /// finds the child already taken and the id already gone.
+    pub async fn stop(self) {
+        kill_child(&self.proc, "managed Dagger engine log follower").await;
+        deregister(self.teardown_id);
+    }
+}
+
+/// Stream the managed Dagger engine's logs into the run dir for the duration of the run, returning a
+/// guard the caller stops at run end (`None` when capture was skipped or could not start).
+///
+/// MANAGED TIER ONLY: the engine is a local `docker compose` container we can `logs -f`. For the k8s
+/// port-forward tier and explicit `kube-pod://`/env-override hosts there is no local container to
+/// follow — log a one-line note and skip. Resolution must already have run (`resolve_runner_host`),
+/// so this reads the cached host rather than re-deciding.
+///
+/// NON-FATAL: this is pure diagnostics. If `docker`/compose is missing or the follower fails to
+/// spawn, warn and continue — never fail or block a run on log capture. The follower also joins the
+/// teardown registry, so SIGINT/SIGTERM reaps it even before [`DaggerLogsGuard::stop`] runs.
+pub async fn capture_managed_dagger_logs(
+    dagger_compose: &Path,
+    root_run_dir: &Path,
+) -> Option<DaggerLogsGuard> {
+    if RESOLVED_RUNNER_HOST.get().map(String::as_str) != Some(MANAGED_DAGGER_HOST) {
+        info!("sandbox: engine-log capture is managed-tier only; skipped for the resolved host");
+        return None;
+    }
+    match spawn_dagger_log_follower(dagger_compose, root_run_dir).await {
+        Ok(guard) => Some(guard),
+        Err(e) => {
+            warn!("could not capture managed Dagger engine logs (continuing): {e}");
+            None
+        }
+    }
+}
+
+/// Spawn the detached `docker compose ... logs -f --no-color --timestamps` follower, teeing both
+/// stdout and stderr into `dagger.engine.log` (mirrors the backend log tee). Streaming (not a
+/// teardown snapshot) so lines survive an engine container crash/recreate mid-run. `--timestamps`
+/// aligns engine lines with the backend log.
+async fn spawn_dagger_log_follower(
+    dagger_compose: &Path,
+    root_run_dir: &Path,
+) -> Result<DaggerLogsGuard, std::io::Error> {
+    let log_path = root_run_dir.join(DAGGER_ENGINE_LOG_FILE);
+    let log_file = std::fs::File::create(&log_path)?;
+    info!(
+        "capturing managed Dagger engine logs ({})",
+        log_path.display()
+    );
+    let mut cmd = Command::new("docker");
+    cmd.args(["compose", "-p", BENCH_DAGGER_COMPOSE_PROJECT, "-f"])
+        .arg(dagger_compose)
+        .args(["logs", "-f", "--no-color", "--timestamps"])
+        .stdout(log_file.try_clone()?)
+        .stderr(log_file)
+        .stdin(std::process::Stdio::null())
+        .process_group(0);
+    let child = cmd.spawn()?;
+    let proc = Arc::new(Mutex::new(Some(child)));
+    let teardown_id = register(Teardown::DaggerLogs { proc: proc.clone() });
+    Ok(DaggerLogsGuard { teardown_id, proc })
+}
+
 /// Names what the resolution ladder tried and how to fix it, in the style of
 /// [`bench_postgres_unavailable_message`].
 fn dagger_unavailable_resolution(tag: &str) -> LifecycleError {
@@ -996,7 +1097,7 @@ mod tests {
         let pid = child.id().expect("child pid") as i32;
 
         let proc = Arc::new(Mutex::new(Some(child)));
-        let id = register(Teardown {
+        let id = register(Teardown::Backend {
             proc: proc.clone(),
             db_created: Arc::new(Mutex::new(false)),
             db_name: String::new(),
@@ -1037,7 +1138,7 @@ mod tests {
         let (proc_a, pid_a) = spawn_slow_term_child();
         let (proc_b, pid_b) = spawn_slow_term_child();
         for proc in [&proc_a, &proc_b] {
-            register(Teardown {
+            register(Teardown::Backend {
                 proc: proc.clone(),
                 db_created: Arc::new(Mutex::new(false)),
                 db_name: String::new(),

@@ -34,7 +34,7 @@ Every project has an instructions file (`instructions.md`) whose contents are pr
 
 ## Files
 
-In a project chat, the files an agent produces (`save_result`, `download_file`) are saved to the project, so anyone with project access can reach them — unlike a personal chat, whose files stay scoped to the conversation that produced them. The chat's Files panel shows the files created in that chat and its attachments, and in a project chat it also lists the project's files; the project page is where you browse a project's full set.
+In a project chat, the files an agent produces (`save_file`, `download_file`) are saved to the project, so anyone with project access can reach them — unlike a personal chat, whose files stay scoped to the conversation that produced them. The chat's Files panel shows the files created in that chat and its attachments, and in a project chat it also lists the project's files; the project page is where you browse a project's full set.
 
 Plain-text and Markdown files (`.txt`, `.md`) can be edited in place: open one in the Files panel and choose Edit, then save to overwrite its contents — the same way the instructions file is edited. Whoever can reach a file can edit it (project access for a project file, the author for a personal chat's file); the read-only `project:admin` oversight view cannot.
 

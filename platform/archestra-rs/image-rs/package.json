@@ -1,5 +1,5 @@
 {
-  "name": "@archestra/app-runtime-rs",
+  "name": "@archestra/image-rs",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
@@ -7,13 +7,13 @@
   "types": "index.d.ts",
   "scripts": {
     "build": "napi build --release --platform",
-    "check:ci": "cargo fmt --check --all && cargo check -p app_runtime_core -p app_runtime_rs --locked && cargo test -p app_runtime_core --locked && pnpm build && pnpm smoke && pnpm smoke:esm",
-    "check:musl": "cargo test -p app_runtime_core --locked && pnpm build && pnpm smoke && pnpm smoke:esm",
+    "check:ci": "cargo fmt --check --all && cargo check -p image_core -p image_rs --locked && cargo test -p image_core --locked && pnpm build && pnpm smoke && pnpm smoke:esm",
+    "check:musl": "cargo test -p image_core --locked && pnpm build && pnpm smoke && pnpm smoke:esm",
     "lint": "cargo fmt --check --all",
     "smoke": "node smoke.test.cjs",
     "smoke:esm": "node smoke.esm.test.mjs",
-    "test": "cargo test -p app_runtime_core --locked",
-    "type-check": "cargo check -p app_runtime_core -p app_runtime_rs --locked"
+    "test": "cargo test -p image_core --locked",
+    "type-check": "cargo check -p image_core -p image_rs --locked"
   },
   "dependencies": {
     "@archestra/napi-loader": "workspace:*"

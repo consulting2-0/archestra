@@ -483,6 +483,13 @@ export function ChatMessages({
     chatErrors.some(
       (chatError) => chatError.error.message === liveErrorMessage,
     );
+  // Retrying resends the *last* user turn, so only a persisted error with no
+  // message after it (the failed latest turn) may offer a retry — an older error
+  // card between messages would otherwise rerun the wrong turn.
+  const lastMessageTimelineIndex = timelineItems.reduce(
+    (last, item, index) => (item.kind === "message" ? index : last),
+    -1,
+  );
 
   let unsafeContextDividerEmitted = false;
   const claimUnsafeContextDivider = (): boolean => {
@@ -511,7 +518,7 @@ export function ChatMessages({
           {unsafeContextBoundary?.kind === "preexisting_untrusted" && (
             <PreexistingUnsafeContextDivider dividerRef={unsafeBoundaryRef} />
           )}
-          {timelineItems.map((item) => {
+          {timelineItems.map((item, index) => {
             if (item.kind === "chat-error") {
               return (
                 <InlineChatError
@@ -524,7 +531,11 @@ export function ChatMessages({
                   selectedModel={selectedModel}
                   modelSource={modelSource}
                   onProviderConnected={onProviderConnected}
-                  onRetry={onChatErrorRetry}
+                  onRetry={
+                    index > lastMessageTimelineIndex
+                      ? onChatErrorRetry
+                      : undefined
+                  }
                 />
               );
             }
@@ -1383,6 +1394,7 @@ export function ChatMessages({
               selectedModel={selectedModel}
               modelSource={modelSource}
               onProviderConnected={onProviderConnected}
+              onRetry={onChatErrorRetry}
             />
           )}
           {pendingToolCalls.map((toolCall) => (

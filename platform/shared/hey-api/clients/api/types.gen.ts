@@ -26277,6 +26277,7 @@ export type GetPublicConfigResponses = {
         disableInvitations: boolean;
         devAutoLoginEnabled: boolean;
         maintenanceMode: string | null;
+        siteNotificationMessage: string | null;
         enterpriseCoreActive: boolean;
         analytics: {
             enabled: boolean;

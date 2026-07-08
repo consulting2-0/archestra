@@ -14,6 +14,7 @@ import {
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { Tool } from "ai";
 import { afterEach, vi } from "vitest";
+import { getArchestraToolInputSchema } from "@/archestra-mcp-server";
 import { hookDispatcherService } from "@/hooks/hook-dispatcher-service";
 import { ToolModel } from "@/models";
 import { metrics } from "@/observability";
@@ -992,6 +993,82 @@ describe("getChatMcpTools repeated-call circuit breaker", () => {
     expect(mockExecuteA2AMessage).toHaveBeenCalledTimes(
       MAX_IDENTICAL_TOOL_CALLS,
     );
+  });
+});
+
+describe("getChatMcpTools validation-error parameter skeleton", () => {
+  const runToolName = getArchestraToolFullName("run_tool");
+  const editAppName = getArchestraToolFullName("edit_app");
+  const runToolGatewayDef = {
+    name: runToolName,
+    description: "Run tool",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tool_name: { type: "string" },
+        tool_args: { type: "object" },
+      },
+      required: ["tool_name"],
+    },
+  };
+
+  /** edit_app args that fail validation (non-numeric baseVersion). */
+  const invalidEditArgs = () => ({
+    appId: crypto.randomUUID(),
+    baseVersion: "one",
+    edits: [{ old_str: "x", new_str: "y" }],
+  });
+
+  /**
+   * The skeleton is schema-derived, so the behavioral pin is that the error
+   * result surfaces every top-level parameter key of the TARGET tool's
+   * published schema — not any particular wording around them.
+   */
+  const expectEditAppSkeleton = (result: unknown) => {
+    const text = toolResultContent(result);
+    const editAppSchema = getArchestraToolInputSchema(editAppName);
+    expect(editAppSchema).toBeDefined();
+    for (const key of Object.keys(
+      editAppSchema?.properties as Record<string, unknown>,
+    )) {
+      expect(text).toContain(`"${key}"`);
+    }
+  };
+
+  async function setupSkeletonEnv(
+    gatewayTools: Array<Record<string, unknown>>,
+  ) {
+    const { agent, baseParams } = await setupChatToolEnv({ gatewayTools });
+    await f.seedAndAssignArchestraTools(agent.id);
+    vi.spyOn(hookDispatcherService, "fire").mockResolvedValue({
+      decision: "proceed",
+      runs: [],
+    });
+    return chatClient.getChatMcpTools(baseParams);
+  }
+
+  test("a run_tool-wrapped edit_app failure carries the TARGET's parameter skeleton on the first failure", async () => {
+    const tools = await setupSkeletonEnv([runToolGatewayDef]);
+    const result = await tools[runToolName].execute?.(
+      { tool_name: "edit_app", tool_args: invalidEditArgs() },
+      execOptions("wrapped-1"),
+    );
+    expectEditAppSkeleton(result);
+  });
+
+  test("a directly-called archestra tool failure carries its own skeleton on the first failure", async () => {
+    const tools = await setupSkeletonEnv([
+      {
+        name: editAppName,
+        description: "Edit app",
+        inputSchema: { type: "object", properties: {} },
+      },
+    ]);
+    const result = await tools[editAppName].execute?.(
+      invalidEditArgs(),
+      execOptions("direct-1"),
+    );
+    expectEditAppSkeleton(result);
   });
 });
 

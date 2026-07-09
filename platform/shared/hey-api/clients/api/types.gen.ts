@@ -15703,6 +15703,7 @@ export type GetAppsResponses = {
             scope: 'personal' | 'team' | 'org';
             resourceUri: string;
             icon: string | null;
+            requiresInput: boolean;
         }>;
         pagination: {
             currentPage: number;
@@ -15945,6 +15946,7 @@ export type GetExternalAppResponses = {
             resourceUri: string;
             toolName: string;
             name: string;
+            requiresInput: boolean;
         }>;
         defaultMcpServerId: string | null;
         installs: Array<{

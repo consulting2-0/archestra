@@ -38,6 +38,7 @@ import { BrowserPanel } from "@/components/chat/browser-panel";
 import { ChatLinkButton } from "@/components/chat/chat-help-link";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { collectBrowserToolCallIds } from "@/components/chat/chat-messages.utils";
+import { ChatStatusAnnouncer } from "@/components/chat/chat-status-announcer";
 import { ConversationFilesPanel } from "@/components/chat/conversation-files-panel";
 import { ConversationHeader } from "@/components/chat/conversation-header";
 import { InitialAgentSelector } from "@/components/chat/initial-agent-selector";
@@ -2371,6 +2372,7 @@ export function ChatPageContent({
       onClosePanel={closeRightPanel}
     >
       <div className="flex flex-col h-full w-full min-h-0">
+        <ChatStatusAnnouncer status={status} />
         {/* Full-width top bar: title + the Files/Browser/Apps tab strip. It
             sits above the [chat | panel] split so the panel's resize divider
             only spans the content area below it. */}

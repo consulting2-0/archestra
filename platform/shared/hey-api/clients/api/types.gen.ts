@@ -69044,7 +69044,7 @@ export type GetTokensData = {
     path?: never;
     query?: {
         /**
-         * Filter team tokens to only show tokens for teams the profile is assigned to
+         * Annotate each token with worksWithProfile: whether it can authenticate against this profile
          */
         profileId?: string;
     };
@@ -69132,6 +69132,10 @@ export type GetTokensResponses = {
             } | null;
             createdAt: string;
             lastUsedAt: string | null;
+            /**
+             * Only set when the profileId query param is provided: whether this token can authenticate against that profile (org-scoped agents accept any team token; team-scoped agents only their teams'; personal agents none)
+             */
+            worksWithProfile?: boolean;
         }>;
         permissions: {
             canAccessOrgToken: boolean;
@@ -69316,6 +69320,10 @@ export type RotateTokenResponses = {
         } | null;
         createdAt: string;
         lastUsedAt: string | null;
+        /**
+         * Only set when the profileId query param is provided: whether this token can authenticate against that profile (org-scoped agents accept any team token; team-scoped agents only their teams'; personal agents none)
+         */
+        worksWithProfile?: boolean;
         value: string;
     };
 };

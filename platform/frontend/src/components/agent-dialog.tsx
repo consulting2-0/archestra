@@ -1018,9 +1018,10 @@ export function AgentDialog({
     [availableApiKeys, currentLlmProvider, modelsByProvider],
   );
 
-  // Non-admin users must select at least one team for team-scoped resources
+  // A team-scoped agent must have at least one team, otherwise it is
+  // inaccessible to everyone (issue #6624). Applies to admins too.
   const requiresTeamSelection =
-    !isAdmin && scope === "team" && assignedTeamIds.length === 0;
+    scope === "team" && assignedTeamIds.length === 0;
   const hasNoAvailableTeams = !teams || teams.length === 0;
 
   const performSave = useCallback(async () => {
@@ -1033,8 +1034,8 @@ export function AgentDialog({
       return;
     }
 
-    // Non-admin users must select at least one team for team-scoped resources
-    if (!isAdmin && scope === "team" && assignedTeamIds.length === 0) {
+    // A team-scoped agent must have at least one team (issue #6624)
+    if (scope === "team" && assignedTeamIds.length === 0) {
       toast.error("Please select at least one team");
       return;
     }
@@ -1263,7 +1264,6 @@ export function AgentDialog({
     isInternalAgent,
     builtInAgentName,
     showSecurity,
-    isAdmin,
     selectedDelegationTargetIds,
     currentDelegations.length,
     updateAgent,
@@ -2222,7 +2222,7 @@ export function AgentDialog({
                         assignedTeamIds={assignedTeamIds}
                         onTeamIdsChange={setAssignedTeamIds}
                         hasNoAvailableTeams={hasNoAvailableTeams}
-                        showTeamRequired={!isAdmin}
+                        showTeamRequired={true}
                       />
                     )}
 
@@ -2590,7 +2590,7 @@ export function AgentDialog({
                     updateAgent.isPending ||
                     requiresTeamSelection ||
                     mcpEnvConflicts.length > 0 ||
-                    (!isAdmin && scope === "team" && hasNoAvailableTeams)
+                    (scope === "team" && hasNoAvailableTeams)
                   }
                 >
                   {(isSaving ||

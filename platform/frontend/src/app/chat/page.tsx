@@ -150,7 +150,7 @@ import {
   deriveModelSource,
 } from "@/lib/chat/use-chat-preferences";
 import { useInitialChatModelState } from "@/lib/chat/use-initial-chat-model-state.hook";
-import { useConfig, useFeature } from "@/lib/config/config.query";
+import { useConfig } from "@/lib/config/config.query";
 import {
   type ConnectivityState,
   useConnectivity,
@@ -1136,9 +1136,6 @@ export function ChatPageContent({
     },
     [setMessages, conversationId, messages, setChatMessageFeedback],
   );
-  // Message queueing is beta, gated by the ARCHESTRA_BETA master switch.
-  const isMessageQueueEnabled = useFeature("betaEnabled") ?? false;
-
   // A scheduled run's transcript is persisted only when it completes, so a run
   // opened while still running seeds the live chat session empty. When the run
   // finishes, the completion effect refetches the conversation; hydrate the
@@ -1346,7 +1343,9 @@ export function ChatPageContent({
     !!contextCompaction?.isCompacting || compactConversationMutation.isPending;
 
   const handleCompactConversation = useCallback(async () => {
-    if (!conversationId || isReadOnlyConversation) {
+    // The compaction guard matters now that the composer stays usable during
+    // compaction when queueing is on — a second /compact must not re-enter.
+    if (!conversationId || isReadOnlyConversation || isContextCompacting) {
       return;
     }
 
@@ -1433,6 +1432,7 @@ export function ChatPageContent({
   }, [
     compactConversationMutation,
     conversationId,
+    isContextCompacting,
     isReadOnlyConversation,
     recordContextCompaction,
     syncPersistedMessageMetadata,
@@ -1702,7 +1702,7 @@ export function ChatPageContent({
       });
     };
 
-    const queueEnabled = isMessageQueueEnabled && !!conversationId;
+    const queueEnabled = !!conversationId;
     const submitAction = classifyChatSubmitAction({
       status,
       queueEnabled,
@@ -1710,10 +1710,10 @@ export function ChatPageContent({
     });
 
     if (submitAction === "stop") {
-      // Queueing off: the submit button doubles as Stop while a turn streams.
-      // (Stopping is the submit button's onClick, not a form submit.) Throw to
-      // keep the textarea and draft intact — see onSubmit contract in
-      // ArchestraPromptInputProps.
+      // No conversation to queue into (new-chat composer): the submit button
+      // doubles as Stop while a turn streams. (Stopping is the submit button's
+      // onClick, not a form submit.) Throw to keep the textarea and draft
+      // intact — see onSubmit contract in ArchestraPromptInputProps.
       handleStopStreaming();
       throw new Error("stop-not-submit");
     }

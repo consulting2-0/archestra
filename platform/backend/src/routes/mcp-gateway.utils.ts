@@ -5,6 +5,7 @@ import {
   hasArchestraTokenPrefix,
   isAgentTool,
   isAlwaysExposedArchestraToolShortName,
+  isSkillTool,
   MCP_APPS_SERVER_EXTENSION_CAPABILITIES,
   MCP_ENTERPRISE_AUTH_EXTENSION_CAPABILITIES,
   MCP_GATEWAY_OAUTH_SCOPE,
@@ -37,6 +38,7 @@ import {
   filterToolNamesByPermission,
   getAgentTools,
   getArchestraMcpTools,
+  getSkillDelegationTools,
 } from "@/archestra-mcp-server";
 import {
   getUnassignedDiscoverableTools,
@@ -286,17 +288,26 @@ export async function createAgentServer(
     // no agent_tools rows at all, and exclusions/user access apply in both
     // modes. Drop the raw delegation rows and splice in the resolved surface so
     // the gateway advertises the same delegation set the dispatch path accepts.
-    const delegationTools = await getAgentTools({
-      agentId,
-      organizationId: agent.organizationId,
-      userId: tokenAuth?.userId,
-    });
+    const [delegationTools, skillDelegationTools] = await Promise.all([
+      getAgentTools({
+        agentId,
+        organizationId: agent.organizationId,
+        userId: tokenAuth?.userId,
+      }),
+      // Agent-designated skills surface as skill__<slug> delegation tools,
+      // resolved per calling user with the same env/access symmetry.
+      getSkillDelegationTools({
+        agentId,
+        organizationId: agent.organizationId,
+        userId: tokenAuth?.userId,
+      }),
+    ]);
     const candidateTools = dedupeToolsByName(
       [
         ...mcpTools.filter((tool) => !tool.delegateToAgentId),
         ...dynamicUiTools,
         ...implicitMetaTools,
-        ...delegationTools.map((tool) => ({
+        ...[...delegationTools, ...skillDelegationTools].map((tool) => ({
           name: tool.name,
           description: tool.description,
           inputSchema: tool.inputSchema,
@@ -530,9 +541,11 @@ export async function createAgentServer(
       }
 
       try {
-        // Check if this is an Archestra tool or agent delegation tool
+        // Check if this is an Archestra tool or a delegation tool (agent or
+        // skill delegation — both dispatch through executeArchestraTool)
         const isArchestraTool = archestraMcpBranding.isToolName(name);
         const isAgentDelegationTool = isAgentTool(name);
+        const isSkillDelegationTool = isSkillTool(name);
         const contextIsTrusted = !agent.considerContextUntrusted;
 
         // tools/list advertises an all-tools agent's dynamically-accessible
@@ -554,6 +567,7 @@ export async function createAgentServer(
         const assignedToolNames =
           !isArchestraTool &&
           !isAgentDelegationTool &&
+          !isSkillDelegationTool &&
           agent.accessAllTools &&
           tokenAuth?.userId &&
           tokenAuth.organizationId
@@ -649,17 +663,19 @@ export async function createAgentServer(
           return blockedResult;
         }
 
-        if (isArchestraTool || isAgentDelegationTool) {
+        if (isArchestraTool || isAgentDelegationTool || isSkillDelegationTool) {
           logger.info(
             {
               agentId,
               toolName: name,
               toolType: isAgentDelegationTool
                 ? "agent-delegation"
-                : "archestra",
+                : isSkillDelegationTool
+                  ? "skill-delegation"
+                  : "archestra",
             },
-            isAgentDelegationTool
-              ? "Agent delegation tool call received"
+            isAgentDelegationTool || isSkillDelegationTool
+              ? "Delegation tool call received"
               : "Archestra MCP tool call received",
           );
 

@@ -65574,6 +65574,10 @@ export type GetSkillsData = {
         offset?: number;
         search?: string;
         sourceRepo?: string;
+        /**
+         * Restrict results to skills visible from this agent's environment (strict match, built-in skills exempt).
+         */
+        forAgentId?: string;
     };
     url: '/api/skills';
 };
@@ -65653,6 +65657,7 @@ export type GetSkillsResponses = {
             organizationId: string;
             authorId: string | null;
             scope: 'personal' | 'team' | 'org';
+            environmentId: string | null;
             name: string;
             description: string;
             content: string;
@@ -65660,6 +65665,7 @@ export type GetSkillsResponses = {
             license: string | null;
             compatibility: string | null;
             allowedTools: string | null;
+            agentName: string | null;
             templated: boolean;
             metadata: {
                 [key: string]: string;
@@ -65692,7 +65698,7 @@ export type GetSkillsResponse = GetSkillsResponses[keyof GetSkillsResponses];
 export type CreateSkillData = {
     body: {
         /**
-         * A complete SKILL.md manifest: a YAML frontmatter block with `name` and `description` (and optional `license`, `compatibility`, `allowed-tools`, `templated`, `metadata`), followed by the Markdown instruction body. Set `templated: true` to render the body through Handlebars (e.g. `{{user.name}}`) at activation. `allowed-tools` is a space-separated list of tools the skill is pre-approved to use.
+         * A complete SKILL.md manifest: a YAML frontmatter block with `name` and `description` (and optional `license`, `compatibility`, `allowed-tools`, `agent`, `templated`, `metadata`), followed by the Markdown instruction body. Set `templated: true` to render the body through Handlebars (e.g. `{{user.name}}`) at activation. `allowed-tools` is a space-separated list of tools the skill is pre-approved to use. `agent` names an agent the skill runs in — when set, activating the skill delegates it to that agent instead of loading the instructions into the caller's context.
          */
         content: string;
         files?: Array<{
@@ -65708,6 +65714,10 @@ export type CreateSkillData = {
         }>;
         scope?: 'personal' | 'team' | 'org';
         teamIds?: Array<string>;
+        /**
+         * Environment the skill belongs to; null (or omitted on create) is the Default environment. Agents only see skills in their own environment.
+         */
+        environmentId?: string | null;
         /**
          * Tools the skill expects, overriding the SKILL.md `allowed-tools` frontmatter. Omit to use the frontmatter; pass [] to clear.
          */
@@ -65792,6 +65802,7 @@ export type CreateSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
+        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -65799,6 +65810,7 @@ export type CreateSkillResponses = {
         license: string | null;
         compatibility: string | null;
         allowedTools: string | null;
+        agentName: string | null;
         templated: boolean;
         metadata: {
             [key: string]: string;
@@ -65913,6 +65925,7 @@ export type ConvertAgentToSkillResponses = {
             organizationId: string;
             authorId: string | null;
             scope: 'personal' | 'team' | 'org';
+            environmentId: string | null;
             name: string;
             description: string;
             content: string;
@@ -65920,6 +65933,7 @@ export type ConvertAgentToSkillResponses = {
             license: string | null;
             compatibility: string | null;
             allowedTools: string | null;
+            agentName: string | null;
             templated: boolean;
             metadata: {
                 [key: string]: string;
@@ -66212,6 +66226,7 @@ export type GetSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
+        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -66219,6 +66234,7 @@ export type GetSkillResponses = {
         license: string | null;
         compatibility: string | null;
         allowedTools: string | null;
+        agentName: string | null;
         templated: boolean;
         metadata: {
             [key: string]: string;
@@ -66249,7 +66265,7 @@ export type GetSkillResponse = GetSkillResponses[keyof GetSkillResponses];
 export type UpdateSkillData = {
     body: {
         /**
-         * A complete SKILL.md manifest: a YAML frontmatter block with `name` and `description` (and optional `license`, `compatibility`, `allowed-tools`, `templated`, `metadata`), followed by the Markdown instruction body. Set `templated: true` to render the body through Handlebars (e.g. `{{user.name}}`) at activation. `allowed-tools` is a space-separated list of tools the skill is pre-approved to use.
+         * A complete SKILL.md manifest: a YAML frontmatter block with `name` and `description` (and optional `license`, `compatibility`, `allowed-tools`, `agent`, `templated`, `metadata`), followed by the Markdown instruction body. Set `templated: true` to render the body through Handlebars (e.g. `{{user.name}}`) at activation. `allowed-tools` is a space-separated list of tools the skill is pre-approved to use. `agent` names an agent the skill runs in — when set, activating the skill delegates it to that agent instead of loading the instructions into the caller's context.
          */
         content: string;
         files?: Array<{
@@ -66265,6 +66281,10 @@ export type UpdateSkillData = {
         }>;
         scope?: 'personal' | 'team' | 'org';
         teamIds?: Array<string>;
+        /**
+         * Environment the skill belongs to; null (or omitted on create) is the Default environment. Agents only see skills in their own environment.
+         */
+        environmentId?: string | null;
         /**
          * Tools the skill expects, overriding the SKILL.md `allowed-tools` frontmatter. Omit to use the frontmatter; pass [] to clear.
          */
@@ -66351,6 +66371,7 @@ export type UpdateSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
+        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -66358,6 +66379,7 @@ export type UpdateSkillResponses = {
         license: string | null;
         compatibility: string | null;
         allowedTools: string | null;
+        agentName: string | null;
         templated: boolean;
         metadata: {
             [key: string]: string;
@@ -66551,6 +66573,7 @@ export type ResetSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
+        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -66558,6 +66581,7 @@ export type ResetSkillResponses = {
         license: string | null;
         compatibility: string | null;
         allowedTools: string | null;
+        agentName: string | null;
         templated: boolean;
         metadata: {
             [key: string]: string;
@@ -66951,6 +66975,7 @@ export type PreviewGithubSkillResponses = {
         license: string | null;
         compatibility: string | null;
         allowedTools: string | null;
+        agentName: string | null;
         templated: boolean;
         metadata: {
             [key: string]: string;
@@ -67062,6 +67087,7 @@ export type ImportGithubSkillsResponses = {
             organizationId: string;
             authorId: string | null;
             scope: 'personal' | 'team' | 'org';
+            environmentId: string | null;
             name: string;
             description: string;
             content: string;
@@ -67069,6 +67095,7 @@ export type ImportGithubSkillsResponses = {
             license: string | null;
             compatibility: string | null;
             allowedTools: string | null;
+            agentName: string | null;
             templated: boolean;
             metadata: {
                 [key: string]: string;

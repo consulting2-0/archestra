@@ -28272,6 +28272,7 @@ export type GetConfigResponses = {
             chatopsTelegramEnabled: boolean;
             kbAutoSyncPermissionsEnabled: boolean;
             hackathonRecorderEnabled: boolean;
+            hackathonRecorderOverrideActive: boolean;
         };
         providerBaseUrls: {
             [key: string]: string | null;
@@ -60062,6 +60063,7 @@ export type GetOrganizationResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -60359,6 +60361,7 @@ export type UpdateAppearanceSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -60369,6 +60372,7 @@ export type UpdateSecuritySettingsData = {
         defaultDiscoveredToolInvocationPolicy?: 'allow_when_context_is_untrusted' | 'block_when_context_is_untrusted' | 'block_always' | 'require_approval';
         defaultDiscoveredToolResultPolicy?: 'block_always' | 'mark_as_trusted' | 'mark_as_untrusted' | 'sanitize_with_dual_llm';
         allowChatFileUploads?: boolean;
+        appsHackathonRecorderEnabled?: boolean;
         allowToolAutoAssignment?: boolean;
     };
     path?: never;
@@ -60529,6 +60533,7 @@ export type UpdateSecuritySettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -60697,6 +60702,7 @@ export type UpdateLlmSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -60864,6 +60870,7 @@ export type UpdateMcpSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -61031,6 +61038,7 @@ export type UpdateSkillsSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -61200,6 +61208,7 @@ export type UpdateAgentSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -61380,6 +61389,7 @@ export type UpdateConnectionSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -61558,6 +61568,7 @@ export type UpdateDefaultEnvironmentResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -61726,6 +61737,7 @@ export type UpdateAuthSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -61896,6 +61908,7 @@ export type UpdateKnowledgeSettingsResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -62061,6 +62074,7 @@ export type DropEmbeddingConfigResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 
@@ -62315,6 +62329,7 @@ export type CompleteOnboardingResponses = {
         defaultEnvironmentValidationRegex: string | null;
         defaultEnvironmentTrustedImageRegistries: Array<string> | null;
         skillToolsEnabled: boolean;
+        appsHackathonRecorderEnabled: boolean;
     };
 };
 

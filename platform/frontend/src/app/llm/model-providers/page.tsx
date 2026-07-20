@@ -95,6 +95,7 @@ const DEFAULT_FORM_VALUES: LlmProviderApiKeyFormValues = {
   vaultSecretPath: null,
   vaultSecretKey: null,
   isPrimary: false,
+  billingMode: "metered",
   bedrockAuthMethod: "api-key",
   awsAccessKeyId: null,
   awsSecretAccessKey: null,
@@ -196,6 +197,7 @@ export default function ApiKeysPage() {
         vaultSecretPath: editingApiKey.vaultSecretPath ?? null,
         vaultSecretKey: editingApiKey.vaultSecretKey ?? null,
         isPrimary: editingApiKey.isPrimary ?? false,
+        billingMode: editingApiKey.billingMode ?? "metered",
         bedrockAuthMethod: "api-key",
         awsAccessKeyId: null,
         awsSecretAccessKey: null,
@@ -246,6 +248,7 @@ export default function ApiKeysPage() {
                 : null
               : undefined,
           isPrimary: values.isPrimary,
+          billingMode: values.billingMode,
           vaultSecretPath:
             !isBedrockSigV4 && byosEnabled && values.vaultSecretPath
               ? values.vaultSecretPath

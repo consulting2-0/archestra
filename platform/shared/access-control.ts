@@ -1165,6 +1165,20 @@ export const requiredEndpointPermissionsMap: Partial<
   [RouteId.DeleteGithubAppConfig]: {
     githubAppConfig: ["delete"],
   },
+  // stored PATs share the githubAppConfig resource: both are org GitHub
+  // credentials managed on the same settings page by the same audience
+  [RouteId.ListGithubPats]: {
+    githubAppConfig: ["read"],
+  },
+  [RouteId.CreateGithubPat]: {
+    githubAppConfig: ["create"],
+  },
+  [RouteId.UpdateGithubPat]: {
+    githubAppConfig: ["update"],
+  },
+  [RouteId.DeleteGithubPat]: {
+    githubAppConfig: ["delete"],
+  },
   [RouteId.UpdateKnowledgeSettings]: {
     knowledgeSettings: ["update"],
   },
@@ -1425,6 +1439,7 @@ export const requiredEndpointPermissionsMap: Partial<
   [RouteId.UpdateSkill]: { skill: ["update"] },
   [RouteId.DeleteSkill]: { skill: ["delete"] },
   [RouteId.ResetSkill]: { skill: ["update"] },
+  [RouteId.UpdateSkillGithubSync]: { skill: ["update"] },
   [RouteId.DiscoverGithubSkills]: { skill: ["read"] },
   [RouteId.SearchSkillCatalog]: { skill: ["read"] },
   [RouteId.PreviewGithubSkill]: { skill: ["read"] },

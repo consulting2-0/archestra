@@ -482,6 +482,12 @@ export const RouteId = {
   UpdateGithubAppConfig: "updateGithubAppConfig",
   DeleteGithubAppConfig: "deleteGithubAppConfig",
 
+  // Stored GitHub personal access tokens
+  ListGithubPats: "listGithubPats",
+  CreateGithubPat: "createGithubPat",
+  UpdateGithubPat: "updateGithubPat",
+  DeleteGithubPat: "deleteGithubPat",
+
   // Knowledge Settings Routes (organization-level)
   UpdateKnowledgeSettings: "updateKnowledgeSettings",
   DropEmbeddingConfig: "dropEmbeddingConfig",
@@ -617,6 +623,7 @@ export const RouteId = {
   UpdateSkill: "updateSkill",
   DeleteSkill: "deleteSkill",
   ResetSkill: "resetSkill",
+  UpdateSkillGithubSync: "updateSkillGithubSync",
   DiscoverGithubSkills: "discoverGithubSkills",
   SearchSkillCatalog: "searchSkillCatalog",
   PreviewGithubSkill: "previewGithubSkill",

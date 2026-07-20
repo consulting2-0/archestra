@@ -1014,6 +1014,9 @@ export const requiredEndpointPermissionsMap: Partial<
   [RouteId.GetAllVirtualApiKeys]: {
     llmVirtualKey: ["read"],
   },
+  [RouteId.GetVirtualApiKey]: {
+    llmVirtualKey: ["read"],
+  },
   [RouteId.CreateVirtualApiKey]: {
     llmVirtualKey: ["create"],
   },
@@ -1465,6 +1468,9 @@ export const requiredEndpointPermissionsMap: Partial<
 
   // Audit Log Routes
   [RouteId.GetAuditLogs]: {
+    auditLog: ["read"],
+  },
+  [RouteId.GetAuditLog]: {
     auditLog: ["read"],
   },
 

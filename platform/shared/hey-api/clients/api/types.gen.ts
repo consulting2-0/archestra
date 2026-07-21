@@ -43440,6 +43440,7 @@ export type GetInternalMcpCatalogToolsResponses = {
             [key: string]: unknown;
         };
         createdAt: string;
+        group: string | null;
         assignedAgentCount: number;
         assignedAgents: Array<{
             id: string;
@@ -53376,6 +53377,7 @@ export type GetMcpServerToolsResponses = {
             [key: string]: unknown;
         };
         createdAt: string;
+        group: string | null;
         assignedAgentCount: number;
         assignedAgents: Array<{
             id: string;

@@ -72174,7 +72174,7 @@ export type GetSkillsData = {
         search?: string;
         sourceRepo?: string;
         /**
-         * Restrict results to skills visible from this agent's environment (strict match, built-in skills exempt).
+         * Restrict results to skills visible from this agent's environment (skills with no environment assignments and built-in skills are visible everywhere).
          */
         forAgentId?: string;
         sortBy?: 'usageCount' | 'lastUsedAt' | 'name' | 'createdAt';
@@ -72258,7 +72258,6 @@ export type GetSkillsResponses = {
             organizationId: string;
             authorId: string | null;
             scope: 'personal' | 'team' | 'org';
-            environmentId: string | null;
             name: string;
             description: string;
             content: string;
@@ -72286,6 +72285,10 @@ export type GetSkillsResponses = {
             updatedAt: string;
             fileCount: number;
             teams: Array<{
+                id: string;
+                name: string;
+            }>;
+            environments: Array<{
                 id: string;
                 name: string;
             }>;
@@ -72325,9 +72328,9 @@ export type CreateSkillData = {
         scope?: 'personal' | 'team' | 'org';
         teamIds?: Array<string>;
         /**
-         * Environment the skill belongs to; null (or omitted on create) is the Default environment. Agents only see skills in their own environment.
+         * Environments the skill is restricted to. Empty (or omitted on create) makes the skill available to agents in every environment; otherwise only agents in one of the listed environments see it.
          */
-        environmentId?: string | null;
+        environmentIds?: Array<string>;
         /**
          * Tools the skill expects, overriding the SKILL.md `allowed-tools` frontmatter. Omit to use the frontmatter; pass [] to clear.
          */
@@ -72412,7 +72415,6 @@ export type CreateSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
-        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -72448,6 +72450,10 @@ export type CreateSkillResponses = {
             createdAt: string;
         }>;
         teams: Array<{
+            id: string;
+            name: string;
+        }>;
+        environments: Array<{
             id: string;
             name: string;
         }>;
@@ -72543,7 +72549,6 @@ export type ConvertAgentToSkillResponses = {
             organizationId: string;
             authorId: string | null;
             scope: 'personal' | 'team' | 'org';
-            environmentId: string | null;
             name: string;
             description: string;
             content: string;
@@ -72579,6 +72584,10 @@ export type ConvertAgentToSkillResponses = {
                 createdAt: string;
             }>;
             teams: Array<{
+                id: string;
+                name: string;
+            }>;
+            environments: Array<{
                 id: string;
                 name: string;
             }>;
@@ -72852,7 +72861,6 @@ export type GetSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
-        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -72891,6 +72899,10 @@ export type GetSkillResponses = {
             id: string;
             name: string;
         }>;
+        environments: Array<{
+            id: string;
+            name: string;
+        }>;
     };
 };
 
@@ -72916,9 +72928,9 @@ export type UpdateSkillData = {
         scope?: 'personal' | 'team' | 'org';
         teamIds?: Array<string>;
         /**
-         * Environment the skill belongs to; null (or omitted on create) is the Default environment. Agents only see skills in their own environment.
+         * Environments the skill is restricted to. Empty (or omitted on create) makes the skill available to agents in every environment; otherwise only agents in one of the listed environments see it.
          */
-        environmentId?: string | null;
+        environmentIds?: Array<string>;
         /**
          * Tools the skill expects, overriding the SKILL.md `allowed-tools` frontmatter. Omit to use the frontmatter; pass [] to clear.
          */
@@ -73005,7 +73017,6 @@ export type UpdateSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
-        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -73041,6 +73052,10 @@ export type UpdateSkillResponses = {
             createdAt: string;
         }>;
         teams: Array<{
+            id: string;
+            name: string;
+        }>;
+        environments: Array<{
             id: string;
             name: string;
         }>;
@@ -73310,7 +73325,6 @@ export type ResetSkillResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
-        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -73346,6 +73360,10 @@ export type ResetSkillResponses = {
             createdAt: string;
         }>;
         teams: Array<{
+            id: string;
+            name: string;
+        }>;
+        environments: Array<{
             id: string;
             name: string;
         }>;
@@ -73450,7 +73468,6 @@ export type UpdateSkillGithubSyncResponses = {
         organizationId: string;
         authorId: string | null;
         scope: 'personal' | 'team' | 'org';
-        environmentId: string | null;
         name: string;
         description: string;
         content: string;
@@ -73486,6 +73503,10 @@ export type UpdateSkillGithubSyncResponses = {
             createdAt: string;
         }>;
         teams: Array<{
+            id: string;
+            name: string;
+        }>;
+        environments: Array<{
             id: string;
             name: string;
         }>;
@@ -73981,7 +74002,6 @@ export type ImportGithubSkillsResponses = {
             organizationId: string;
             authorId: string | null;
             scope: 'personal' | 'team' | 'org';
-            environmentId: string | null;
             name: string;
             description: string;
             content: string;
